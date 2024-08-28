@@ -23,8 +23,8 @@ def call_history(method: Callable) -> Callable:
     History Calls
     """
     key = method.__qualname__
-    input_key = key + ":input_key"
-    output_key = key + ":output_key"
+    inputs = key + ":inputs"
+    outputs = key + ":outputs"
 
     @wraps(method)
     def wrapper(self, *args, **kwargs):
@@ -32,10 +32,10 @@ def call_history(method: Callable) -> Callable:
         # input_key = f"{method.__qualname__}:inputs"
         # output_key = f"{method.__qualname__}:outputs"
 
-        self._redis.rpush(input_key, str(args))
-        output = method(self, *args, **kwargs)
-        self._redis.rpush(output_key, str(output))
-        return output
+        self._redis.rpush(inputs, str(args))
+        data = method(self, *args, **kwargs)
+        self._redis.rpush(outputs, str(data))
+        return data
     
     return wrapper
 
@@ -52,6 +52,7 @@ class Cache:
         self._redis.flushdb()
 
     @count_calls
+    @call_history
     def store(self, data: Union[str, bytes, int, float]) -> str:
         """
         store method that takes a data argument and returns a string
